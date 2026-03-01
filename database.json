@@ -21,6 +21,18 @@
       "size": 41352,
       "created": "2026-02-20T12:32:57.898Z",
       "updated": "2026-02-20T12:32:57.899Z"
+    },
+    "test": {
+      "title": "test",
+      "displayTitle": "test",
+      "visibility": "PUBLIC",
+      "description": "",
+      "expiration": "32223-02-08",
+      "filename": "test.lua",
+      "size": 4,
+      "created": "2026-03-01T20:19:12.062Z",
+      "updated": "2026-03-01T20:19:12.062Z"
     }
-  }
+  },
+  "bots": {}
 }
