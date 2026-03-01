@@ -1,6 +1,6 @@
 const CONFIG = {
-    user: 'simplyIeaf',
-    repo: 'simplyIeaf.github.io',
+    user: 'BiniFn',
+    repo: 'BiniFn-Scripts',
     branch: 'main',
     cacheBuster: () => Date.now()
 };
