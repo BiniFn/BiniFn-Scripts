@@ -8,25 +8,25 @@ const CONFIG = {
 const utils = {
     debounce(func, wait) {
         let timeout;
-        return function(...args) {
+        return function (...args) {
             const context = this;
             clearTimeout(timeout);
             timeout = setTimeout(() => func.apply(context, args), wait);
         };
     },
-    
+
     safeBtoa(str) {
         try {
             return btoa(unescape(encodeURIComponent(str)));
-        } catch(e) {
+        } catch (e) {
             return btoa(str);
         }
     },
-    
+
     safeAtob(str) {
         try {
             return decodeURIComponent(escape(atob(str)));
-        } catch(e) {
+        } catch (e) {
             return atob(str);
         }
     },
@@ -61,7 +61,7 @@ const utils = {
         if (code.length > 100000) return 'Code is too large (max 100KB)';
         return null;
     },
-    
+
     formatDisplayTime(isoString, timezone) {
         const date = new Date(isoString);
         return date.toLocaleString('en-US', {
@@ -92,22 +92,22 @@ const app = {
     isLoading: false,
     searchQuery: '',
     scheduledTimers: {},
-    
+
     async init() {
         const sessionValid = await this.loadSession();
         await this.loadDatabase();
         this.handleRouting();
         window.addEventListener('hashchange', () => this.handleRouting());
-        
+
         this.debouncedRender = utils.debounce(() => this.renderList(), 300);
-        
+
         const today = new Date().toISOString().split('T')[0];
         const expireInput = document.getElementById('edit-expire');
         if (expireInput) expireInput.min = today;
-        
+
         this.initEventListeners();
         this.loadMonacoIfNeeded();
-        
+
         window.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
@@ -136,15 +136,15 @@ const app = {
             }
         }, 60000);
     },
-    
+
     startBotScheduler() {
         setTimeout(() => this.checkScheduledBots(), 1000);
-        
+
         setInterval(() => {
             this.checkScheduledBots();
         }, 30000);
     },
-    
+
     initEventListeners() {
         const searchInput = document.getElementById('search');
         if (searchInput) {
@@ -154,7 +154,7 @@ const app = {
             });
         }
     },
-    
+
     loadMonacoIfNeeded() {
         if (location.hash === '#admin') {
             setTimeout(() => {
@@ -169,25 +169,25 @@ const app = {
             const storedToken = localStorage.getItem('gh_token');
             const storedUser = localStorage.getItem('gh_user');
             const tokenExpiry = localStorage.getItem('gh_token_expiry');
-            
+
             if (storedToken && storedUser && tokenExpiry) {
                 const now = Date.now();
                 if (now < parseInt(tokenExpiry)) {
                     this.token = storedToken;
                     this.currentUser = JSON.parse(storedUser);
-                    
+
                     if (this.currentUser.login.toLowerCase() !== CONFIG.user.toLowerCase()) {
                         this.logout(true);
                         return false;
                     }
-                    
+
                     this.updateUIForLoggedInUser();
                     return true;
                 } else {
                     this.logout(true);
                 }
             }
-        } catch(e) {
+        } catch (e) {
             console.error('Session load error:', e);
         }
         return false;
@@ -209,7 +209,7 @@ const app = {
                 localStorage.setItem('gh_token', this.token);
                 localStorage.setItem('gh_user', JSON.stringify(this.currentUser));
                 localStorage.setItem('gh_token_expiry', expiry.toString());
-            } catch(e) {
+            } catch (e) {
                 console.error('Session save error:', e);
                 this.showToast('Failed to save session', 'error');
             }
@@ -228,14 +228,14 @@ const app = {
     async login() {
         if (this.actionInProgress) return;
         this.actionInProgress = true;
-        
+
         try {
             const token = document.getElementById('auth-token').value.trim();
             if (!token) {
                 this.showLoginError('Token is required');
                 return;
             }
-            
+
             this.token = token;
             const success = await this.verifyToken(false);
             if (success) {
@@ -257,7 +257,7 @@ const app = {
         err.style.display = 'block';
         this.actionInProgress = false;
     },
-    
+
     showToast(message, type = 'success') {
         if (typeof Toastify !== 'undefined') {
             Toastify({
@@ -277,32 +277,32 @@ const app = {
         if (!silent && !confirm('Are you sure you want to logout?')) {
             return;
         }
-        
+
         try {
             localStorage.removeItem('gh_token');
             localStorage.removeItem('gh_user');
             localStorage.removeItem('gh_token_expiry');
-        } catch(e) {
+        } catch (e) {
             console.error('Logout error:', e);
         }
-        
+
         this.token = null;
         this.currentUser = null;
         this.db = null;
         this.dbSha = null;
-        
+
         Object.values(this.scheduledTimers).forEach(timer => clearTimeout(timer));
         this.scheduledTimers = {};
-        
+
         document.getElementById('auth-section').style.display = 'block';
         document.getElementById('user-section').style.display = 'none';
         const privateFilter = document.getElementById('private-filter');
         const unlistedFilter = document.getElementById('unlisted-filter');
         if (privateFilter) privateFilter.style.display = 'none';
         if (unlistedFilter) unlistedFilter.style.display = 'none';
-        
+
         location.href = '#';
-        
+
         if (!silent) {
             this.showToast('Logged out successfully', 'success');
             setTimeout(() => location.reload(), 1000);
@@ -314,16 +314,16 @@ const app = {
             const res = await fetch('https://api.github.com/user', {
                 headers: { 'Authorization': `token ${this.token}` }
             });
-            
+
             if (!res.ok) {
                 throw new Error('Invalid token');
             }
-            
+
             const user = await res.json();
             if (user.login.toLowerCase() !== CONFIG.user.toLowerCase()) {
                 throw new Error(`Token belongs to ${user.login}, not ${CONFIG.user}.`);
             }
-            
+
             this.currentUser = user;
             this.updateUIForLoggedInUser();
             return true;
@@ -336,7 +336,7 @@ const app = {
                 localStorage.removeItem('gh_token');
                 localStorage.removeItem('gh_user');
                 localStorage.removeItem('gh_token_expiry');
-            } catch(err) {
+            } catch (err) {
                 console.error('Error clearing storage:', err);
             }
             return false;
@@ -350,12 +350,12 @@ const app = {
             if (list) {
                 list.innerHTML = `<div style="text-align:center;padding:20px"><div class="spinner"></div><p>Loading...</p></div>`;
             }
-            
+
             const url = `https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/database.json?t=${CONFIG.cacheBuster()}`;
             const headers = this.token ? { 'Authorization': `token ${this.token}` } : {};
-            
+
             const res = await fetch(url, { headers });
-            
+
             if (res.status === 404) {
                 this.db = { scripts: {}, bots: {} };
                 this.dbSha = null;
@@ -363,14 +363,14 @@ const app = {
                 if (list) list.innerHTML = `<div class="empty-admin-state"><p>No scripts yet</p></div>`;
                 return;
             }
-            
+
             if (!res.ok) {
                 throw new Error(`Failed to load database: ${res.status}`);
             }
-            
+
             const file = await res.json();
             this.dbSha = file.sha;
-            
+
             try {
                 const content = utils.safeAtob(file.content);
                 this.db = JSON.parse(content);
@@ -385,15 +385,15 @@ const app = {
                         this.scheduleBotTimer(botId, bot);
                     }
                 });
-                
-            } catch(parseError) {
+
+            } catch (parseError) {
                 console.error('Database parse error:', parseError);
                 this.db = { scripts: {}, bots: {} };
             }
-            
+
             this.renderList();
             this.renderAdminList();
-            
+
         } catch (e) {
             console.error("DB Error", e);
             const list = document.getElementById('admin-list');
@@ -454,7 +454,7 @@ const app = {
             }
 
             bot.isProcessing = true;
-            
+
             const workflowResponse = await fetch(
                 `https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/actions/workflows/discord_bot.yml/dispatches`,
                 {
@@ -478,20 +478,20 @@ const app = {
 
             if (workflowResponse.status === 204) {
                 console.log(`✅ Workflow triggered for bot: ${botId}`);
-                
+
                 bot.status = 'processing';
                 bot.lastTriggered = new Date().toISOString();
                 bot.isProcessing = false;
-                
+
                 setTimeout(() => this.loadDatabase(), 5000);
-                
+
             } else {
                 const errorText = await workflowResponse.text();
                 console.error(`Failed to trigger workflow: ${workflowResponse.status} - ${errorText}`);
-                
+
                 bot.isProcessing = false;
                 bot.lastError = `Workflow trigger failed: ${workflowResponse.status}`;
-                
+
                 this.showToast(`Failed to trigger scheduled bot: ${workflowResponse.status}`, 'error');
             }
 
@@ -509,15 +509,15 @@ const app = {
         if (!this.currentUser || !this.db) return;
 
         const now = Date.now();
-        
+
         Object.entries(this.db.bots || {}).forEach(([botId, bot]) => {
             if (bot.scheduled && bot.scheduledTime && !bot.sent && !bot.cancelled && !bot.isProcessing) {
                 const scheduledTime = new Date(bot.scheduledTime).getTime();
                 const timeDiff = scheduledTime - now;
-                
+
                 if (timeDiff > 0 && timeDiff <= 300000) {
                     if (!this.scheduledTimers[botId]) {
-                        console.log(`Setting up timer for bot ${botId} in ${Math.round(timeDiff/1000)} seconds`);
+                        console.log(`Setting up timer for bot ${botId} in ${Math.round(timeDiff / 1000)} seconds`);
                         this.scheduleBotTimer(botId, bot);
                     }
                 }
@@ -531,7 +531,7 @@ const app = {
 
     async sendBotNow(botId) {
         if (!this.currentUser || !this.db || !this.db.bots[botId]) return false;
-        
+
         const bot = this.db.bots[botId];
         if (bot.isProcessing || bot.sent) return false;
 
@@ -559,10 +559,10 @@ const app = {
             if (workflowResponse.status === 204) {
                 bot.status = 'processing';
                 bot.isProcessing = false;
-                
+
                 const dbRes = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/database.json`, {
                     method: 'PUT',
-                    headers: { 
+                    headers: {
                         'Authorization': `token ${this.token}`,
                         'Content-Type': 'application/json'
                     },
@@ -599,26 +599,26 @@ const app = {
         const scheduleTimeInput = document.getElementById('bot-schedule-time');
         const timezoneInput = document.getElementById('bot-timezone');
         const saveBtn = document.querySelector('.bot-actions .btn:last-child');
-        
+
         if (!titleInput || !messageInput || !saveBtn) return;
-        
+
         const title = titleInput.value.trim();
         const message = messageInput.value.trim();
         const schedule = scheduleInput ? scheduleInput.checked : false;
         const scheduleTime = scheduleTimeInput ? scheduleTimeInput.value : '';
         const timezone = timezoneInput ? timezoneInput.value : Intl.DateTimeFormat().resolvedOptions().timeZone;
-        
+
         if (!title || !message) {
             this.showToast('Title and message are required', 'error');
             return;
         }
-        
+
         if (this.actionInProgress) return;
         this.actionInProgress = true;
-        
+
         saveBtn.disabled = true;
         if (typeof NProgress !== 'undefined') NProgress.start();
-        
+
         try {
             const botId = this.currentBotId || `bot_${Date.now()}`;
             const now = new Date().toISOString();
@@ -654,7 +654,7 @@ const app = {
 
             const dbRes = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/database.json`, {
                 method: 'PUT',
-                headers: { 
+                headers: {
                     'Authorization': `token ${this.token}`,
                     'Content-Type': 'application/json'
                 },
@@ -677,7 +677,7 @@ const app = {
                 await this.sendBotNow(botId);
             }
 
-        } catch(e) {
+        } catch (e) {
             this.showToast(`Error: ${e.message}`, 'error');
         } finally {
             saveBtn.disabled = false;
@@ -689,11 +689,11 @@ const app = {
     renderList() {
         const list = document.getElementById('script-list');
         if (!list || !this.db) return;
-        
+
         const scripts = Object.entries(this.db.scripts || {}).map(([title, data]) => ({ title, ...data }));
         const filtered = this.filterLogic(scripts);
         const sorted = this.sortLogic(filtered);
-        
+
         if (sorted.length === 0) {
             list.innerHTML = `<div class="empty-state">
                 <h2>No scripts found</h2>
@@ -701,11 +701,11 @@ const app = {
             </div>`;
             return;
         }
-        
+
         list.innerHTML = sorted.map(s => {
             const scriptId = utils.sanitizeTitle(s.title);
             const isExpired = s.expiration && new Date(s.expiration) < new Date();
-            
+
             return `<div class="script-card" onclick="window.location.href='scripts/${scriptId}/index.html'">
                 <div class="card-content">
                     <div class="card-header-section">
@@ -726,7 +726,7 @@ const app = {
     filterLogic(scripts) {
         const query = this.searchQuery.toLowerCase();
         const now = new Date();
-        
+
         return scripts.filter(s => {
             if (!s.title.toLowerCase().includes(query)) return false;
             if (s.visibility === 'PRIVATE' && !this.currentUser) return false;
@@ -769,10 +769,10 @@ const app = {
             location.hash = '';
             return;
         }
-        
+
         document.querySelectorAll('.admin-tab').forEach(t => t.style.display = 'none');
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        
+
         if (tab === 'list') {
             document.getElementById('admin-tab-list').style.display = 'block';
             document.querySelectorAll('.tab-btn')[0].classList.add('active');
@@ -836,18 +836,18 @@ const app = {
         const list = document.getElementById('bots-list');
         const bots = Object.entries(this.db.bots || {}).map(([id, data]) => ({ id, ...data }));
         const sorted = bots.sort((a, b) => new Date(b.created || 0) - new Date(a.created || 0));
-        
+
         if (sorted.length === 0) {
             list.innerHTML = `<div class="empty-admin-state">
                 <p>No bots yet. Click "Create Bot" to add one.</p>
             </div>`;
             return;
         }
-        
+
         list.innerHTML = sorted.map(b => {
             let status = 'Pending';
             let statusClass = 'status-pending';
-            
+
             if (b.cancelled) {
                 status = 'Cancelled';
                 statusClass = 'status-cancelled';
@@ -858,7 +858,7 @@ const app = {
                 status = 'Scheduled';
                 statusClass = 'status-scheduled';
             }
-            
+
             let timeInfo = 'Pending';
             if (b.sent) {
                 timeInfo = `Sent: ${new Date(b.sentTime).toLocaleString()}`;
@@ -866,7 +866,7 @@ const app = {
                 const displayTime = utils.formatDisplayTime(b.scheduledTime, b.timezone);
                 timeInfo = `Scheduled: ${displayTime}`;
             }
-            
+
             return `<div class="admin-item" data-bot-id="${b.id}" onclick="app.populateBotEditor('${b.id}')">
                 <div class="admin-item-left">
                     <strong>${utils.escapeHtml(b.title)}</strong>
@@ -891,14 +891,14 @@ const app = {
         adminItems.forEach(item => {
             let startX = 0;
             let isSwiping = false;
-            
+
             item.addEventListener('touchstart', (e) => {
                 startX = e.touches[0].clientX;
                 isSwiping = false;
                 item.style.transition = 'none';
                 item.classList.add('swiping');
             }, { passive: true });
-            
+
             item.addEventListener('touchmove', (e) => {
                 if (!startX) return;
                 const currentX = e.touches[0].clientX;
@@ -912,23 +912,23 @@ const app = {
                     }
                 }
             }, { passive: false });
-            
+
             item.addEventListener('touchend', (e) => {
                 if (!startX || !isSwiping) return;
                 const endX = e.changedTouches[0].clientX;
                 const diff = endX - startX;
                 item.style.transition = 'transform 0.3s ease, background-color 0.3s ease, opacity 0.3s ease';
                 item.classList.remove('swiping');
-                
+
                 if (diff > 100) {
                     item.style.transform = 'translateX(300px)';
                     item.style.opacity = '0';
                     item.classList.add('swipe-delete');
-                    
+
                     setTimeout(() => {
                         const scriptTitle = item.getAttribute('data-script-title');
                         const botId = item.getAttribute('data-bot-id');
-                        
+
                         if (scriptTitle) {
                             this.deleteScriptConfirmation(scriptTitle);
                         } else if (botId) {
@@ -942,7 +942,7 @@ const app = {
                 startX = 0;
                 isSwiping = false;
             });
-            
+
             item.addEventListener('click', (e) => {
                 if (isSwiping) {
                     e.preventDefault();
@@ -960,7 +960,7 @@ const app = {
         }
 
         let shouldDelete = false;
-        
+
         if (typeof Swal !== 'undefined') {
             const result = await Swal.fire({
                 title: 'Delete Script',
@@ -993,7 +993,7 @@ const app = {
 
         const bot = this.db.bots[botId];
         let shouldDelete = false;
-        
+
         if (typeof Swal !== 'undefined') {
             const result = await Swal.fire({
                 title: 'Cancel Bot',
@@ -1020,22 +1020,22 @@ const app = {
     async deleteScriptLogic(scriptTitle) {
         if (this.actionInProgress) return;
         this.actionInProgress = true;
-        
+
         try {
             if (typeof NProgress !== 'undefined') NProgress.start();
-            
+
             const script = this.db.scripts[scriptTitle];
             if (!script) throw new Error('Script not found');
-            
+
             const scriptId = utils.sanitizeTitle(scriptTitle);
-            
+
             await this.deleteScriptFiles(scriptId, script.filename);
-            
+
             delete this.db.scripts[scriptTitle];
-            
+
             const dbRes = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/database.json`, {
                 method: 'PUT',
-                headers: { 
+                headers: {
                     'Authorization': `token ${this.token}`,
                     'Content-Type': 'application/json'
                 },
@@ -1045,7 +1045,7 @@ const app = {
                     sha: this.dbSha
                 })
             });
-            
+
             if (dbRes.ok) {
                 const newDbData = await dbRes.json();
                 this.dbSha = newDbData.content.sha;
@@ -1054,8 +1054,8 @@ const app = {
             } else {
                 throw new Error('Failed to update database');
             }
-            
-        } catch(e) {
+
+        } catch (e) {
             console.error('Delete error:', e);
             this.showToast(`Error: ${e.message}`, 'error');
             await this.loadDatabase();
@@ -1068,18 +1068,18 @@ const app = {
     async deleteScriptFiles(scriptId, filename) {
         try {
             const scriptDir = `scripts/${scriptId}`;
-            
+
             const dirUrl = `https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${scriptDir}`;
             const dirRes = await fetch(dirUrl, {
                 headers: { 'Authorization': `token ${this.token}` }
             });
-            
+
             if (dirRes.ok) {
                 const files = await dirRes.json();
                 for (const file of Array.isArray(files) ? files : [files]) {
                     await fetch(file.url, {
                         method: 'DELETE',
-                        headers: { 
+                        headers: {
                             'Authorization': `token ${this.token}`,
                             'Content-Type': 'application/json'
                         },
@@ -1098,22 +1098,22 @@ const app = {
     async deleteBotLogic(botId) {
         if (this.actionInProgress) return;
         this.actionInProgress = true;
-        
+
         try {
             if (typeof NProgress !== 'undefined') NProgress.start();
-            
+
             if (this.scheduledTimers[botId]) {
                 clearTimeout(this.scheduledTimers[botId]);
                 delete this.scheduledTimers[botId];
             }
-            
+
             if (this.db.bots[botId]) {
                 this.db.bots[botId].cancelled = true;
                 this.db.bots[botId].status = 'cancelled';
-                
+
                 const dbRes = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/database.json`, {
                     method: 'PUT',
-                    headers: { 
+                    headers: {
                         'Authorization': `token ${this.token}`,
                         'Content-Type': 'application/json'
                     },
@@ -1123,7 +1123,7 @@ const app = {
                         sha: this.dbSha
                     })
                 });
-                
+
                 if (dbRes.ok) {
                     const newDbData = await dbRes.json();
                     this.dbSha = newDbData.content.sha;
@@ -1133,8 +1133,8 @@ const app = {
                     throw new Error('Failed to update database');
                 }
             }
-            
-        } catch(e) {
+
+        } catch (e) {
             console.error('Cancel error:', e);
             this.showToast(`Error: ${e.message}`, 'error');
             await this.loadDatabase();
@@ -1149,24 +1149,24 @@ const app = {
         document.getElementById('edit-title').value = '';
         document.getElementById('edit-visibility').value = 'PUBLIC';
         document.getElementById('edit-expire').value = '';
-        
+
         if (window.monacoEditor) {
             window.monacoEditor.setValue('');
         }
-        
+
         if (window.quillEditor) {
             window.quillEditor.root.innerHTML = '';
         }
-        
+
         const saveBtn = document.querySelector('.editor-actions .btn:last-child');
         if (saveBtn) saveBtn.textContent = 'Publish';
-        
+
         const deleteBtn = document.querySelector('.btn-delete');
         if (deleteBtn) deleteBtn.remove();
-        
+
         const viewBtn = document.querySelector('.btn-view-script');
         if (viewBtn) viewBtn.remove();
-        
+
         this.currentEditingId = null;
         this.originalTitle = null;
         this.originalScriptId = null;
@@ -1201,32 +1201,32 @@ const app = {
     async populateEditor(title) {
         if (!this.currentUser || !this.db || !this.db.scripts[title]) return;
         const s = this.db.scripts[title];
-        
+
         this.currentEditingId = title;
         this.originalTitle = title;
         this.originalScriptId = utils.sanitizeTitle(title);
-        
+
         this.switchAdminTab('create');
-        
+
         document.getElementById('editor-heading').textContent = `Edit: ${title}`;
         document.getElementById('edit-title').value = s.displayTitle || s.title;
         document.getElementById('edit-visibility').value = s.visibility;
         document.getElementById('edit-expire').value = s.expiration || '';
-        
+
         if (window.quillEditor) {
             setTimeout(() => {
                 window.quillEditor.root.innerHTML = s.description || '';
             }, 100);
         }
-        
+
         try {
             if (typeof NProgress !== 'undefined') NProgress.start();
-            
+
             const res = await fetch(`https://raw.githubusercontent.com/${CONFIG.user}/${CONFIG.repo}/refs/heads/${CONFIG.branch}/scripts/${this.originalScriptId}/raw/${s.filename}?t=${CONFIG.cacheBuster()}`);
-            
+
             if (res.ok) {
                 const code = await res.text();
-                
+
                 if (window.monacoEditor) {
                     window.monacoEditor.setValue(code);
                 }
@@ -1236,7 +1236,7 @@ const app = {
                     window.monacoEditor.setValue(errorText);
                 }
             }
-        } catch(e) {
+        } catch (e) {
             console.error('Load error:', e);
             const errorText = '-- Error loading content';
             if (window.monacoEditor) {
@@ -1245,10 +1245,10 @@ const app = {
         } finally {
             if (typeof NProgress !== 'undefined') NProgress.done();
         }
-        
+
         const saveBtn = document.querySelector('.editor-actions .btn:last-child');
         if (saveBtn) saveBtn.textContent = 'Update Script';
-        
+
         const actionButtons = document.querySelector('.action-buttons');
         let deleteBtn = document.querySelector('.btn-delete');
         if (!deleteBtn && actionButtons) {
@@ -1265,32 +1265,32 @@ const app = {
     async populateBotEditor(botId) {
         if (!this.currentUser || !this.db || !this.db.bots[botId]) return;
         const bot = this.db.bots[botId];
-        
+
         if (bot.sent) {
             this.showToast('Cannot edit sent posts', 'error');
             this.switchAdminTab('bots');
             return;
         }
-        
+
         this.currentBotId = botId;
         this.switchAdminTab('create-bot');
-        
+
         document.getElementById('bot-editor-heading').textContent = `Edit Bot: ${bot.title}`;
         document.getElementById('bot-title').value = bot.title;
         document.getElementById('bot-message').value = bot.message;
         document.getElementById('bot-schedule').checked = bot.scheduled || false;
-        
+
         if (bot.scheduledTime) {
             const date = new Date(bot.scheduledTime);
             const localDateTime = date.toISOString().slice(0, 16);
             document.getElementById('bot-schedule-time').value = localDateTime;
         }
-        
+
         document.getElementById('bot-timezone').value = bot.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-        
+
         const saveBtn = document.querySelector('.bot-actions .btn:last-child');
         if (saveBtn) saveBtn.textContent = bot.scheduled ? 'Update Schedule' : 'Send Now';
-        
+
         this.toggleScheduleFields();
     },
 
@@ -1299,59 +1299,59 @@ const app = {
             this.showToast('Please login first.', 'error');
             return;
         }
-        
+
         if (this.actionInProgress) return;
         this.actionInProgress = true;
-        
+
         const titleInput = document.getElementById('edit-title');
         const visibilityInput = document.getElementById('edit-visibility');
         const expireInput = document.getElementById('edit-expire');
         const saveBtn = document.querySelector('.editor-actions .btn:last-child');
-        
+
         if (!titleInput || !visibilityInput || !expireInput || !saveBtn) {
             this.showToast('Form elements not found', 'error');
             this.actionInProgress = false;
             return;
         }
-        
+
         const title = titleInput.value.trim();
         const visibility = visibilityInput.value;
         const expiration = expireInput.value;
         const code = window.monacoEditor ? window.monacoEditor.getValue() : '';
         const desc = window.quillEditor ? window.quillEditor.root.innerHTML : '';
         const originalBtnText = saveBtn.textContent;
-        
+
         const titleError = utils.validateTitle(title);
         const codeError = utils.validateCode(code);
-        
+
         if (titleError || codeError) {
             this.showToast(titleError || codeError, 'error');
             this.actionInProgress = false;
             return;
         }
-        
+
         if (expiration && new Date(expiration) < new Date()) {
             this.showToast('Expiration date cannot be in the past', 'error');
             this.actionInProgress = false;
             return;
         }
-        
+
         const isEditing = !!this.currentEditingId;
         const newScriptId = utils.sanitizeTitle(title);
         const filename = newScriptId + '.lua';
-        
+
         saveBtn.disabled = true;
         saveBtn.textContent = isEditing ? 'Updating...' : 'Publishing...';
-        
+
         if (typeof NProgress !== 'undefined') NProgress.start();
-        
+
         try {
             let originalCreationDate = new Date().toISOString();
-            
+
             if (isEditing && this.db.scripts[this.originalTitle]) {
                 originalCreationDate = this.db.scripts[this.originalTitle].created;
             }
-            
+
             const scriptData = {
                 title: title,
                 displayTitle: title,
@@ -1363,14 +1363,14 @@ const app = {
                 created: originalCreationDate,
                 updated: new Date().toISOString()
             };
-            
+
             await this.createScriptFiles(newScriptId, filename, code, isEditing, this.originalScriptId);
-            
+
             this.db.scripts[title] = scriptData;
-            
+
             const dbRes = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/database.json`, {
                 method: 'PUT',
-                headers: { 
+                headers: {
                     'Authorization': `token ${this.token}`,
                     'Content-Type': 'application/json'
                 },
@@ -1380,27 +1380,27 @@ const app = {
                     sha: this.dbSha
                 })
             });
-            
+
             if (!dbRes.ok) {
                 const errorData = await dbRes.json();
                 throw new Error(`Failed to update database: ${errorData.message || 'Unknown error'}`);
             }
-            
+
             const newDbData = await dbRes.json();
             this.dbSha = newDbData.content.sha;
-            
+
             this.showToast(`${isEditing ? 'Updated' : 'Published'} successfully!`, 'success');
-            
+
             this.currentEditingId = title;
             this.originalTitle = title;
             this.originalScriptId = newScriptId;
-            
+
             document.getElementById('editor-heading').textContent = `Edit: ${title}`;
             saveBtn.textContent = 'Update Script';
-            
+
             await this.loadDatabase();
-            
-        } catch(e) {
+
+        } catch (e) {
             console.error('Save error:', e);
             this.showToast(`Error: ${e.message}`, 'error');
         } finally {
@@ -1416,24 +1416,24 @@ const app = {
         const rawDir = `${scriptDir}/raw`;
         const indexPath = `${scriptDir}/index.html`;
         const rawFilePath = `${rawDir}/${filename}`;
-        
+
         const now = new Date();
         const formattedDate = now.toLocaleDateString('en-US', {
             month: '2-digit',
             day: '2-digit',
             year: 'numeric'
         });
-        
+
         const escapedScriptId = utils.escapeHtml(scriptId);
         const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        
+
         const scriptViewerHTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${escapedScriptId} - BiniRBX Scripts</title>
-    <link rel="icon" type="image/png" href="https://yt3.ggpht.com/wrMKTrl_4TexkVLuTILn1KZWW6NEbqTyLts9UhZNZhzLkOEBS13lBAi3gVl1Q465QruIDSwCUQ=s160-c-k-c0x00ffffff-no-rj">
+    <link rel="icon" type="image/png" href="../../profile.jpg">
     <link rel="stylesheet" href="../../style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1443,7 +1443,7 @@ const app = {
         <div class="nav-content">
             <div class="nav-left">
                 <a href="../../index.html" class="brand" style="text-decoration: none; color: inherit;">
-                    <img src="https://yt3.ggpht.com/wrMKTrl_4TexkVLuTILn1KZWW6NEbqTyLts9UhZNZhzLkOEBS13lBAi3gVl1Q465QruIDSwCUQ=s160-c-k-c0x00ffffff-no-rj" class="nav-icon" alt="Icon">
+                    <img src="../../profile.jpg" class="nav-icon" alt="Icon">
                     <span class="nav-title">BiniRBX</span>
                 </a>
             </div>
@@ -1520,47 +1520,47 @@ const app = {
     </script>
 </body>
 </html>`;
-        
+
         if (isEditing && oldScriptId && oldScriptId !== scriptId) {
             await this.deleteScriptFiles(oldScriptId, filename);
         }
-        
+
         await this.createOrUpdateFile(indexPath, scriptViewerHTML, 'text/html');
         await this.createOrUpdateFile(rawFilePath, code, 'text/plain');
     },
 
     async createOrUpdateFile(path, content, contentType) {
         const url = `https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${path}`;
-        
+
         const getRes = await fetch(url, {
             headers: { 'Authorization': `token ${this.token}` }
         });
-        
+
         let sha = null;
         if (getRes.ok) {
             const existingFile = await getRes.json();
             sha = existingFile.sha;
         }
-        
+
         const body = {
             message: `Create/update ${path}`,
             content: utils.safeBtoa(content),
             branch: CONFIG.branch
         };
-        
+
         if (sha) {
             body.sha = sha;
         }
-        
+
         const putRes = await fetch(url, {
             method: 'PUT',
-            headers: { 
+            headers: {
                 'Authorization': `token ${this.token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
         });
-        
+
         if (!putRes.ok) {
             const error = await putRes.json();
             throw new Error(`Failed to create/update file ${path}: ${error.message}`);
@@ -1571,7 +1571,7 @@ const app = {
         const hash = location.hash.slice(1);
         document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
         window.scrollTo(0, 0);
-        
+
         if (hash === 'admin') {
             if (!this.currentUser) {
                 this.toggleLoginModal();
@@ -1584,21 +1584,21 @@ const app = {
             document.getElementById('view-home').style.display = 'block';
         }
     },
-    
+
     loadMonacoEditor() {
         if (typeof monaco !== 'undefined' || window.monacoEditor) return;
-        
+
         if (!document.querySelector('#editor-container')) return;
-        
+
         const loadMonaco = () => {
             if (typeof monaco === 'undefined') {
                 const script = document.createElement('script');
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs/loader.min.js';
                 script.onload = () => {
-                    require.config({ 
-                        paths: { 
-                            vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs' 
-                        } 
+                    require.config({
+                        paths: {
+                            vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs'
+                        }
                     });
                     require(['vs/editor/editor.main'], () => {
                         window.monacoEditor = monaco.editor.create(document.getElementById('editor-container'), {
@@ -1617,22 +1617,22 @@ const app = {
                 document.head.appendChild(script);
             }
         };
-        
+
         setTimeout(loadMonaco, 100);
     },
-    
+
     loadQuillEditor() {
         if (typeof Quill !== 'undefined' || window.quillEditor) return;
-        
+
         if (!document.querySelector('#quill-container')) return;
-        
+
         const loadQuill = () => {
             if (typeof Quill === 'undefined') {
                 const link = document.createElement('link');
                 link.href = 'https://cdn.quilljs.com/1.3.6/quill.snow.css';
                 link.rel = 'stylesheet';
                 document.head.appendChild(link);
-                
+
                 const script = document.createElement('script');
                 script.src = 'https://cdn.quilljs.com/1.3.6/quill.min.js';
                 script.onload = () => {
@@ -1642,7 +1642,7 @@ const app = {
                             toolbar: [
                                 ['bold', 'italic', 'underline'],
                                 ['code-block'],
-                                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                                 ['clean']
                             ]
                         },
@@ -1652,7 +1652,7 @@ const app = {
                 document.head.appendChild(script);
             }
         };
-        
+
         setTimeout(loadQuill, 100);
     }
 };
@@ -1667,12 +1667,12 @@ function navigate(path) {
 
 window.addEventListener('DOMContentLoaded', () => {
     app.init();
-    
+
     if (typeof NProgress !== 'undefined') {
-        NProgress.configure({ 
+        NProgress.configure({
             showSpinner: false,
             speed: 400,
-            trickleSpeed: 200 
+            trickleSpeed: 200
         });
     }
 });
